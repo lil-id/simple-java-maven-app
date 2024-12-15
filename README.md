@@ -24,7 +24,7 @@ the "Deliver" stage of your Pipeline.
 
 `docker run -d -p 9000:80 --name nginx-reverse-proxy nginx-reverse-proxy`
 
-Note: in this case, i want access my Jenkins Blue Ocean dashboard from port 9000 at my local computer.
+Note: in this case, i want access my Jenkins Blue Ocean dashboard from port 9000 at my local computer besides using port 49000.
 
 3. Don't forget to connect the nginx container into the Jenkins network you created. For example the network here it is called `jenkins`.
 

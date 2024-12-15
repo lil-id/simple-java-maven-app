@@ -13,3 +13,19 @@ The `jenkins` directory contains an example of the `Jenkinsfile` (i.e. Pipeline)
 you'll be creating yourself during the tutorial and the `jenkins/scripts` subdirectory
 contains a shell script with commands that are executed when Jenkins processes
 the "Deliver" stage of your Pipeline.
+
+# Access Jenkins Using Reverse Proxy
+
+1. Build docker image with
+
+`docker build -t nginx-reverse-proxy .`
+
+2. Run nginx container
+
+`docker run -d -p 9000:80 --name nginx-reverse-proxy nginx-reverse-proxy`
+
+Note: in this case, i want access my Jenkins Blue Ocean dashboard from port 9000 at my local computer.
+
+3. Don't forget to connect the nginx container into the Jenkins network you created. For example the network here it is called `jenkins`.
+
+`docker network connect jenkins nginx-reverse-proxy`

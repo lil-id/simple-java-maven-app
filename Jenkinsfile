@@ -1,22 +1,28 @@
 node {
-    def mavenTool = tool name: '3.9.9', type: 'maven'
+    def mavenTool = tool name: 'maven', type: 'maven'
     def jdkTool = tool name: 'jdk-21', type: 'jdk'
     def dockerImage = 'liloid/java-maven-app:latest'
     def ec2Host = '13.229.208.132'
     def ec2User = 'ec2-user'
 
     try {
-        stage('Debug Tests') {
-            withEnv(["JAVA_HOME=${jdkTool}", "PATH+MAVEN=${mavenTool}/bin"]) { 
-                sh 'pwd'
-            }
+
+        stage('Checkout') {
+            checkout([$class: 'GitSCM', 
+                branches: [[name: '*/dev']],
+                userRemoteConfigs: [[url: 'file:///home/Documents/devops/cicd/simple-java-maven-app']]])
         }
+
+        // stage('Debug Tests') {
+        //     withEnv(["JAVA_HOME=${jdkTool}", "PATH+MAVEN=${mavenTool}/bin"]) { 
+        //         sh 'pwd'
+        //     }
+        // }
 
         stage('Build') {
             withEnv(["JAVA_HOME=${jdkTool}", "PATH+MAVEN=${mavenTool}/bin"]) { 
-                sh 'mvn clean package'
                 sh 'ls -la'
-                // Build Docker image
+                sh 'mvn clean package'
                 sh "docker build -t ${dockerImage} ."
             }
         }
@@ -45,22 +51,23 @@ node {
                     sh "docker push ${dockerImage}"
                 }
 
-                // Deploy Docker container on EC2
-                // sh """
-                // ssh -i ${sshKey} ${ec2User}@${ec2Host} << EOF
-                // docker pull ${dockerImage}
-                // docker stop java-maven-app || true
-                // docker rm java-maven-app || true
-                // docker run -d --name java-maven-app -p 8080:8080 ${dockerImage}
-                // EOF
-                // """
+                sshagent(['jenkins-docker-ssh']) {
+                    sh """
+                        ssh -o StrictHostKeyChecking=no ec2-user@ec2-13-229-208-132.ap-southeast-1.compute.amazonaws.com \
+                        "sudo docker pull ${dockerImage} && \
+                        sudo docker stop java-maven-app || true && \
+                        sudo docker rm java-maven-app || true && \
+                        sudo docker run -d --name java-maven-app -p 8080:8080 ${dockerImage}"
+                    """
+                }
 
-                sh './jenkins/scripts/deliver.sh' 
+                echo 'Application deployed successfully!'
                 echo 'Aplikasi akan berjalan selama 1 menit...'
                 sleep(time: 1, unit: 'MINUTES')
                 echo 'Waktu habis, aplikasi akan dihentikan.'
             }
         }
+
     } catch (e) {
         echo "Build failed in stage '${currentBuild.currentResult}': ${e.getMessage()}"
         currentBuild.result = 'UNSTABLE' 
